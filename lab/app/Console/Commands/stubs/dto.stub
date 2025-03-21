@@ -1,0 +1,12 @@
+<?php
+
+namespace App\DTO;
+
+class {{class}}
+{
+    public function __construct(
+        {{#each fields}}
+        public {{type}} ${{name}},
+        {{/each}}
+    ) {}
+}

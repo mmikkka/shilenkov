@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class InfoController extends Controller
 {
-    public function clientInfo(Request $request)
-    {
-        // Получение информации о клиенте
+    public function clientInfo(Request $request)  : JsonResponse {
         $clientInfo = [
             'ip' => $request->ip(),
             'user_agent' => $request->header('User-Agent'),
@@ -17,14 +16,13 @@ class InfoController extends Controller
 
         return response()->json($clientInfo);
     }
-    public function serverInfo()
-    {
+    public function serverInfo()  : JsonResponse {
         return response()->json([
             'php_version' => phpversion(),
         ]);
     }
 
-    public function databaseInfo() {
+    public function databaseInfo() : JsonResponse {
         $connection = DB::connection()->getPdo();
         return response()->json([
             'driver' => DB::connection()->getDriverName(),
