@@ -107,12 +107,15 @@ class AuthController extends Controller
 
     public function refreshToken(Request $request): JsonResponse
     {
-        $request->validate([
-            'refresh_token' => 'required|string', // Обязательное поле
-        ]);
+        // Получаем refresh-токен из заголовка
+        $refreshToken = $request->bearerToken();
+
+        if (!$refreshToken) {
+            return response()->json(['error' => 'Отсутствует refresh-токен'], 401);
+        }
 
         // Находим токен
-        $token = PersonalAccessToken::findToken($request->refresh_token);
+        $token = PersonalAccessToken::findToken($refreshToken);
 
         if (!$token ||
             $token->expires_at < now() ||
