@@ -2,8 +2,8 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\ServiceProvider;
 
 class RouteServiceProvider extends ServiceProvider
 {
@@ -18,7 +18,7 @@ class RouteServiceProvider extends ServiceProvider
     /**
      * Bootstrap services.
      */
-    public function boot() : void
+    public function boot(): void
     {
         // Загружаем маршруты API
         Route::prefix('api') // <-- Все API-роуты будут начинаться с /api

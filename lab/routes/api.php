@@ -1,8 +1,13 @@
 <?php
-use App\Http\Controllers\AuthController;
-use App\Http\Middleware\CheckExpiredTokens;
-use Illuminate\Support\Facades\Route;
+
 use App\Enums\TokenAbility;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\UserController;
+use App\Http\Middleware\CheckExpiredTokens;
+use App\Http\Middleware\CheckPermission;
+use Illuminate\Support\Facades\Route;
 
 // Группируем все маршруты с префиксом 'auth' и добавляем middleware для защищённых
 Route::prefix('auth')->group(function () {
@@ -13,7 +18,7 @@ Route::prefix('auth')->group(function () {
     // Обновление токена теперь требует refresh-токена с нужной возможностью
     Route::post('refresh', [AuthController::class, 'refreshToken'])->middleware([
         'auth:sanctum', // Сначала Sanctum проверяет токен
-        'ability:' . TokenAbility::ISSUE_ACCESS_TOKEN->value
+        'ability:' . TokenAbility::ISSUE_ACCESS_TOKEN->value,
     ]);
 
     // Маршруты, требующие авторизации
@@ -23,5 +28,61 @@ Route::prefix('auth')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::post('logout_all', [AuthController::class, 'logoutAll']);
         Route::post('change-password', [AuthController::class, 'changePassword']);
+    });
+});
+
+Route::prefix('ref')->group(function () {
+    Route::middleware(['auth:sanctum', CheckExpiredTokens::class, 'ability:' . TokenAbility::ACCESS_API->value])->group(function () {
+        // маршруты управления пользователями
+        Route::prefix('user')->group(function () {
+            Route::get('/', [UserController::class, 'index'])
+                ->middleware([CheckPermission::class . ':get-list-user']);
+            Route::get('{user}/role', [UserController::class, 'showWithRoles'])
+                ->middleware([CheckPermission::class . ':read-user']);
+            Route::post('{user}/role/{role}', [UserController::class, 'attachRole'])
+                ->middleware([CheckPermission::class . ':create-user']);
+            Route::delete('{user}/role/{role}', [UserController::class, 'forceDetachRole'])
+                ->middleware([CheckPermission::class . ':delete-user']);
+            Route::delete('{user}/role/{role}/soft', [UserController::class, 'detachRole'])
+                ->middleware([CheckPermission::class . ':delete-user']);
+            Route::post('{user}/role/{role}/restore', [UserController::class, 'restoreRole'])
+                ->middleware([CheckPermission::class . ':restore-user']);
+        });
+
+        // маршруты управления ролевой политикой (Роли)
+        Route::prefix('policy/role')->group(function () {
+            Route::get('/', [RoleController::class, 'index'])
+                ->middleware([CheckPermission::class . ':get-list-role']);
+            Route::get('{role}', [RoleController::class, 'show'])
+                ->middleware([CheckPermission::class . ':read-role']);
+            Route::post('/', [RoleController::class, 'store'])
+                ->middleware([CheckPermission::class . ':create-role']);
+            Route::put('{role}', [RoleController::class, 'update'])
+                ->middleware([CheckPermission::class . ':update-role']);
+            Route::delete('{role}', [RoleController::class, 'forceDestroy'])
+                ->middleware([CheckPermission::class . ':delete-role']);
+            Route::delete('{role}/soft', [RoleController::class, 'destroy'])
+                ->middleware([CheckPermission::class . ':delete-role']);
+            Route::post('{role}/restore', [RoleController::class, 'restore'])
+                ->middleware([CheckPermission::class . ':restore-role']);
+        });
+
+        // маршруты управления ролевой политикой (Разрешения)
+        Route::prefix('policy/permission')->group(function () {
+            Route::get('/', [PermissionController::class, 'index'])
+                ->middleware([CheckPermission::class . ':get-list-permission']);
+            Route::get('{permission}', [PermissionController::class, 'show'])
+                ->middleware([CheckPermission::class . ':read-permission']);
+            Route::post('/', [PermissionController::class, 'store'])
+                ->middleware([CheckPermission::class . ':create-permission']);
+            Route::put('{permission}', [PermissionController::class, 'update'])
+                ->middleware([CheckPermission::class . ':update-permission']);
+            Route::delete('{permission}', [PermissionController::class, 'forceDestroy'])
+                ->middleware([CheckPermission::class . ':delete-permission']);
+            Route::delete('{permission}/soft', [PermissionController::class, 'destroy'])
+                ->middleware([CheckPermission::class . ':delete-permission']);
+            Route::post('{permission}/restore', [PermissionController::class, 'restore'])
+                ->middleware([CheckPermission::class . ':restore-permission']);
+        });
     });
 });
