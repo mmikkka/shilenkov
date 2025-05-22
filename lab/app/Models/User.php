@@ -2,17 +2,21 @@
 
 namespace App\Models;
 
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Model;
+use \Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Laravel\Sanctum\PersonalAccessToken;
 
-class User extends Model
+class User extends Authenticatable
 {
-    use HasApiTokens;
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, Loggable;
 
+    /**
+     * @var array<int, string>
+     */
     protected $fillable = [
         'username',
         'email',
@@ -43,4 +47,28 @@ class User extends Model
             ->delete();
     }
 
+    public function hasPermission($permissionCode): bool
+    {
+        if ($this->hasRole('admin')) {
+            return true;
+        }
+
+        return $this->roles()
+            ->whereHas('permissions', fn($q) => $q->where('code', $permissionCode))
+            ->exists();
+    }
+
+    public function hasRole($roleCode): bool
+    {
+        return $this->roles()->where('code', $roleCode)->exists();
+    }
+
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class, 'users_and_roles')
+            ->using(UserRole::class)
+            ->withPivot('deleted_at')
+            ->wherePivotNull('deleted_at')
+            ->whereNull('roles.deleted_at');
+    }
 }

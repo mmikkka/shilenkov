@@ -5,16 +5,14 @@ namespace App\Http\Controllers;
 use App\DTO\LoginDTO;
 use App\DTO\RegisterDTO;
 use App\Enums\TokenAbility;
+use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
-use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Carbon\Carbon;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
@@ -64,7 +62,7 @@ class AuthController extends Controller
 
             // Ищем пользователя
             $user = User::query()->where('username', $dto->username)->first();
-            if (!$user || !Hash::check($dto->password, $user->password)) {
+            if (! $user || ! Hash::check($dto->password, $user->password)) {
                 return response()->json([
                     'error' => 'Ошибка:(',
                     'message' => 'Неверно указано имя или пароль',
@@ -72,7 +70,7 @@ class AuthController extends Controller
             }
 
             // Проверяем количество токенов
-            $maxTokens = env('MAX_TOKENS', 10);
+            $maxTokens = env('MAX_TOKENS', 40);
             if ($user->tokens()->count() >= $maxTokens) {
                 return response()->json([
                     'error' => 'О нет... Лимит токенов превышен...',
@@ -105,62 +103,11 @@ class AuthController extends Controller
         }
     }
 
-    public function refreshToken(Request $request): JsonResponse
-    {
-        // Получаем refresh-токен из заголовка
-        $refreshToken = $request->bearerToken();
-
-        if (!$refreshToken) {
-            return response()->json(['error' => 'Отсутствует refresh-токен'], 401);
-        }
-
-        // Находим токен
-        $token = PersonalAccessToken::findToken($refreshToken);
-
-        if (!$token ||
-            $token->expires_at < now() ||
-            !$token->can(TokenAbility::ISSUE_ACCESS_TOKEN->value)) {
-            return response()->json(['error' => 'Недействительный или просроченный токен'], 401);
-        }
-
-        $request->setUserResolver(fn() => $token->tokenable);
-
-        // Создаём новый access-токен
-        $newAccessToken = $token->tokenable->createToken(
-            'access_token',
-            [TokenAbility::ACCESS_API->value], // Способности токена
-            now()->addMinutes(config('sanctum.expiration')) // Преобразуем в DateTimeInterface
-        );
-
-        return response()->json([
-            'access_token' => $newAccessToken->plainTextToken,
-        ], 200);
-    }
-
-
-    // Получение информации об авторизованном пользователе
-    public function infoUser(Request $request): JsonResponse
-    {
-        $user = $request->user();
-
-        // Если пользователь не авторизован, возвращаем ошибку
-        if (!$user) {
-            return response()->json([
-                'error' => 'Ошибка:(',
-                'message' => 'Пользователь не авторизован',
-            ], 401);
-        }
-
-        // Возвращаем данные пользователя в формате JSON через ресурс UserResource
-        return response()->json(new UserResource($user));
-    }
-
-    // Получение списка токенов пользователя
     public function tokens(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'error' => 'Ошибка:)',
                 'message' => 'Пользователь не авторизован',
@@ -175,12 +122,65 @@ class AuthController extends Controller
         ]);
     }
 
+    // Получение информации об авторизованном пользователе
+
+    public function refreshToken(Request $request): JsonResponse
+    {
+        // Получаем refresh-токен из заголовка
+        $refreshToken = $request->bearerToken();
+
+        if (! $refreshToken) {
+            return response()->json(['error' => 'Отсутствует refresh-токен'], 401);
+        }
+
+        // Находим токен
+        $token = PersonalAccessToken::findToken($refreshToken);
+
+        if (! $token ||
+            $token->expires_at < now() ||
+            ! $token->can(TokenAbility::ISSUE_ACCESS_TOKEN->value)) {
+            return response()->json(['error' => 'Недействительный или просроченный токен'], 401);
+        }
+
+        $request->setUserResolver(fn () => $token->tokenable);
+
+        // Создаём новый access-токен
+        $newAccessToken = $token->tokenable->createToken(
+            'access_token',
+            [TokenAbility::ACCESS_API->value], // Способности токена
+            now()->addMinutes(config('sanctum.expiration')) // Преобразуем в DateTimeInterface
+        );
+
+        return response()->json([
+            'access_token' => $newAccessToken->plainTextToken,
+        ], 200);
+    }
+
+    // Получение списка токенов пользователя
+
+    public function infoUser(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        // Если пользователь не авторизован, возвращаем ошибку
+        if (! $user) {
+            return response()->json([
+                'error' => 'Ошибка:(',
+                'message' => 'Пользователь не авторизован',
+            ], 401);
+        }
+
+        // Возвращаем данные пользователя в формате JSON через ресурс UserResource
+        return response()->json(new UserResource($user));
+    }
+
     // Выход (удаление текущего токена)
+
     public function logout(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'error' => 'Ошибка:(',
                 'message' => 'Пользователь не найден',
@@ -197,7 +197,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'error' => 'Ошибка:(',
                 'message' => 'Пользователь не найден',
@@ -215,7 +215,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        if (!Hash::check($request->current_password, $user->password)) {
+        if (! Hash::check($request->current_password, $user->password)) {
             return response()->json(['message' => 'Неверный текущий пароль'], 400);
         }
 
