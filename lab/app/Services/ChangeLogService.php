@@ -23,24 +23,25 @@ class ChangeLogService
     {
         return DB::transaction(function () use ($changeLogId) {
             $changeLog = ChangeLog::query()->findOrFail($changeLogId);
-            $model = $changeLog->entity_type::findOrFail($changeLog->entity_id);
+            $model = $changeLog->entity_type::withTrashed()->findOrFail($changeLog->entity_id);
+
+            if ($changeLog->is_rollbacked) {
+                abort(422, "Данный лог уже был откачен");
+            }
 
             if ($changeLog->action === 'delete') {
                 $model->restore();
+            } else if ($changeLog->action === 'create') {
+                $model->delete();
             } else {
                 $model->fill($changeLog->before);
                 $model->save();
             }
 
-            // Логируем откат
-            $this->logChange(new ChangeLogDTO(
-                entityType: $changeLog->entity_type,
-                entityId: $changeLog->entity_id,
-                created_by: Auth::id(),
-                action: 'rollback',
-                before: $model->toArray(),
-                after: $changeLog->before
-            ));
+            $changeLog->is_rollbacked = true;
+            $changeLog->rollbacked_at = now();
+
+            $changeLog->save();
 
             return $model;
         });

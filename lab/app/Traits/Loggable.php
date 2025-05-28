@@ -29,7 +29,7 @@ trait Loggable
 
             $userId = auth()->id();
 
-            app(ChangeLogService::class)->logChange(new ChangeLogDTO(
+            $log = app(ChangeLogService::class)->logChange(new ChangeLogDTO(
                 entityType: get_class($model),
                 entityId: $model->id,
                 created_by: $userId,

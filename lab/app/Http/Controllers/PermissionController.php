@@ -44,7 +44,7 @@ class PermissionController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Вывести разрешение
      */
     public function show(Permission $permission): PermissionResource
     {
@@ -52,7 +52,7 @@ class PermissionController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Изменить разрешение
      */
     public function update(Permission $permission, UpdatePermissionRequest $request): JsonResponse
     {
@@ -66,7 +66,7 @@ class PermissionController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Мягкое удаление
      */
     public function destroy(Permission $permission): JsonResponse
     {
@@ -77,6 +77,9 @@ class PermissionController extends Controller
         ]);
     }
 
+    /**
+     * Жёсткое удаление
+     */
     public function forceDestroy($id): JsonResponse
     {
         $permission = Permission::withTrashed()->findOrFail($id);
@@ -96,15 +99,13 @@ class PermissionController extends Controller
         $permission->restore();
 
         return response()->json([
-            'message' => 'разрешение успешно восстановлено',
+            'message' => 'Разрешение успешно восстановлено',
             'data' => new PermissionResource($permission),
         ]);
     }
 
     public function story($id, ChangeLogService $service): AnonymousResourceCollection
     {
-
-
         $logs = $service->getEntityStory(Permission::class, $id);
 
         return ChangeLogResource::collection($logs);
