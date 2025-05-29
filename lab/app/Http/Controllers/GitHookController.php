@@ -12,6 +12,9 @@ use Illuminate\Support\Str;
 
 class GitHookController extends Controller
 {
+    /**
+     * Обработка запроса
+     */
     public function handle(Request $request, string $secretKey): JsonResponse
     {
         $envSecret = env('GIT_HOOK_SECRET');
@@ -24,6 +27,7 @@ class GitHookController extends Controller
             return response()->json(['message' => 'Неверный ключ'], 403);
         }
 
+        # Проверка запущена обработка или нет
         if (Cache::get('git_hook_running', false)) {
             return response()->json(['message' => 'Обновление уже запущено'], 409);
         }
@@ -51,14 +55,17 @@ class GitHookController extends Controller
         }
     }
 
+    /**
+     * Запуск выполнения команд git
+     */
     protected function runGitCommands(): void
     {
         $repoPath = base_path();
 
         $commands = [
-            ['git', 'reset', "--hard"],
-            ['git', 'checkout', 'master'],
-            ['git', 'pull'],
+            ['git', 'reset', "--hard"], # Удаляет все не закомиченные изменения
+            ['git', 'checkout', 'master'], # Переходит на ветку master
+            ['git', 'pull'], # Подтягивает все изменения из удаленного репозитория и сохраняет их локально
         ];
 
         foreach ($commands as $command) {
