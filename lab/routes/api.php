@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChangeLogController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\TwoFaAuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\CheckExpiredTokens;
 use App\Http\Middleware\CheckPermission;
@@ -15,7 +16,7 @@ Route::prefix('auth')->group(function () {
     // Маршруты, не требующие авторизации
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
-
+    
     // Обновление токена теперь требует refresh-токена с нужной возможностью
     Route::post('refresh', [AuthController::class, 'refreshToken'])->middleware([
         'auth:sanctum', // Сначала Sanctum проверяет токен
@@ -24,6 +25,11 @@ Route::prefix('auth')->group(function () {
 
     // Маршруты, требующие авторизации
     Route::middleware(['auth:sanctum', CheckExpiredTokens::class, 'ability:' . TokenAbility::ACCESS_API->value])->group(function () {
+        Route::prefix('2fa')->group(function () {
+            Route::post('qr', [TwoFaAuthController::class, 'createQrCode']);
+            Route::post('enable', [TwoFaAuthController::class, 'enable']);
+            Route::post('disable', [TwoFaAuthController::class, 'disable']);
+        });
         Route::get('me', [AuthController::class, 'infoUser']);
         Route::get('tokens', [AuthController::class, 'tokens']);
         Route::post('logout', [AuthController::class, 'logout']);

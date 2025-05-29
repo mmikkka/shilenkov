@@ -22,9 +22,12 @@ class User extends Authenticatable
         'email',
         'password',
         'birthday',
+        'google2fa_enabled',
+        'google2fa_secret',
     ];
 
     protected $hidden = [
+        'google2fa_secret',
         'password',
         'remember_token',
     ];
