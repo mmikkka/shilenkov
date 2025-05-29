@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Process\Exceptions\ProcessFailedException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Cache;
@@ -20,11 +21,11 @@ class GitHookController extends Controller
                 'ip' => $request->ip(),
                 'date' => now(),
             ]);
-            return response()->json(['message' => "Неверный ключ"], 403);
+            return response()->json(['message' => 'Неверный ключ'], 403);
         }
 
         if (Cache::get('git_hook_running', false)) {
-            return response()->json(['message' => "Обновление уже запущено"], 409);
+            return response()->json(['message' => 'Обновление уже запущено'], 409);
         }
 
         try {
@@ -37,22 +38,51 @@ class GitHookController extends Controller
 
             $this->runGitCommands();
 
-            return response()->json(["message" => "Проект успешно обновлен"]);
+            return response()->json(['message' => 'Проект успешно обновлен']);
+        } catch (\Exception $e) {
+            Log::error('Git hook failed', [
+                'error' => $e->getMessage(),
+                'ip' => $request->ip(),
+                'date' => now(),
+            ]);
+            return response()->json(['message' => 'Ошибка при обновлении проекта', 'error' => $e->getMessage()], 500);
         } finally {
-            // Снимаем флаг выполнения
             Cache::forget('git_hook_running');
         }
     }
 
     protected function runGitCommands(): void
     {
-        $reset = Process::run('git reset');
-        Log::info('Git reset output: ' . $reset->output());
+        $repoPath = base_path();
 
-        $checkout = Process::run('git checkout main');
-        Log::info('Git checkout output: ' . $checkout->output());
+        $commands = [
+            ['git', 'reset', "--hard"],
+            ['git', 'checkout', 'master'],
+            ['git', 'pull'],
+        ];
 
-        $pull = Process::run('git pull origin main');
-        Log::info('Git pull output: ' . $pull->output());
+        foreach ($commands as $command) {
+            try {
+                $process = Process::path($repoPath)
+                    ->timeout(60)
+                    ->run($command);
+
+                Log::info('Git command executed', [
+                    'command' => implode(' ', $command),
+                    'output' => $process->output(),
+                    'error_output' => $process->errorOutput(),
+                ]);
+
+                if (!$process->successful()) {
+                    throw new ProcessFailedException($process);
+                }
+            } catch (ProcessFailedException $e) {
+                Log::error('Git command failed', [
+                    'command' => implode(' ', $command),
+                    'error' => $e->getMessage(),
+                ]);
+                throw $e;
+            }
+        }
     }
 }
