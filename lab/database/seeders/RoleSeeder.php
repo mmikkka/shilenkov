@@ -57,7 +57,7 @@ class RoleSeeder extends Seeder
         ])->pluck('id');
         $userRole->permissions()->sync($userPermissions);
 
-        // c. Гость может:
+        // Гость может:
         $guestPermissions = Permission::where('code', 'get-list-user')->pluck('id');
         $guestRole->permissions()->sync($guestPermissions);
     }
