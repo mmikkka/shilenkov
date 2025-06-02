@@ -2,8 +2,10 @@
 
 use App\Enums\TokenAbility;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ChangeLogController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\TwoFaAuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\CheckExpiredTokens;
 use App\Http\Middleware\CheckPermission;
@@ -14,7 +16,7 @@ Route::prefix('auth')->group(function () {
     // Маршруты, не требующие авторизации
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
-
+    
     // Обновление токена теперь требует refresh-токена с нужной возможностью
     Route::post('refresh', [AuthController::class, 'refreshToken'])->middleware([
         'auth:sanctum', // Сначала Sanctum проверяет токен
@@ -23,6 +25,11 @@ Route::prefix('auth')->group(function () {
 
     // Маршруты, требующие авторизации
     Route::middleware(['auth:sanctum', CheckExpiredTokens::class, 'ability:' . TokenAbility::ACCESS_API->value])->group(function () {
+        Route::prefix('2fa')->group(function () {
+            Route::post('qr', [TwoFaAuthController::class, 'createQrCode']);
+            Route::post('enable', [TwoFaAuthController::class, 'enable']);
+            Route::post('disable', [TwoFaAuthController::class, 'disable']);
+        });
         Route::get('me', [AuthController::class, 'infoUser']);
         Route::get('tokens', [AuthController::class, 'tokens']);
         Route::post('logout', [AuthController::class, 'logout']);
@@ -39,6 +46,8 @@ Route::prefix('ref')->group(function () {
                 ->middleware([CheckPermission::class . ':get-list-user']);
             Route::get('{user}/role', [UserController::class, 'showWithRoles'])
                 ->middleware([CheckPermission::class . ':read-user']);
+            Route::get('{id}/story', [UserController::class, 'story'])
+                ->middleware(CheckPermission::class . ':get-story-user');
             Route::post('{user}/role/{role}', [UserController::class, 'attachRole'])
                 ->middleware([CheckPermission::class . ':create-user']);
             Route::delete('{user}/role/{role}', [UserController::class, 'forceDetachRole'])
@@ -49,12 +58,19 @@ Route::prefix('ref')->group(function () {
                 ->middleware([CheckPermission::class . ':restore-user']);
         });
 
+        Route::prefix('changelog')->group(function () {
+            Route::get('/', [ChangeLogController::class, 'index']);
+            Route::post('{logId}/rollback', [ChangeLogController::class, 'rollback']);
+        });
+
         // маршруты управления ролевой политикой (Роли)
         Route::prefix('policy/role')->group(function () {
             Route::get('/', [RoleController::class, 'index'])
                 ->middleware([CheckPermission::class . ':get-list-role']);
             Route::get('{role}', [RoleController::class, 'show'])
                 ->middleware([CheckPermission::class . ':read-role']);
+            Route::get('{id}/story', [RoleController::class, 'story'])
+                ->middleware(CheckPermission::class . ':get-story-role');
             Route::post('/', [RoleController::class, 'store'])
                 ->middleware([CheckPermission::class . ':create-role']);
             Route::put('{role}', [RoleController::class, 'update'])
@@ -73,6 +89,8 @@ Route::prefix('ref')->group(function () {
                 ->middleware([CheckPermission::class . ':get-list-permission']);
             Route::get('{permission}', [PermissionController::class, 'show'])
                 ->middleware([CheckPermission::class . ':read-permission']);
+            Route::get('{id}/story', [PermissionController::class, 'story'])
+                ->middleware(CheckPermission::class . ':get-story-permission');
             Route::post('/', [PermissionController::class, 'store'])
                 ->middleware([CheckPermission::class . ':create-permission']);
             Route::put('{permission}', [PermissionController::class, 'update'])

@@ -2,17 +2,17 @@
 
 namespace App\Models;
 
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Notifications\Notifiable;
+use \Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Laravel\Sanctum\PersonalAccessToken;
 
-class User extends Model
+class User extends Authenticatable
 {
-    use HasApiTokens;
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, Loggable;
 
     /**
      * @var array<int, string>
@@ -22,9 +22,12 @@ class User extends Model
         'email',
         'password',
         'birthday',
+        'google2fa_enabled',
+        'google2fa_secret',
     ];
 
     protected $hidden = [
+        'google2fa_secret',
         'password',
         'remember_token',
     ];

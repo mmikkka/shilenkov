@@ -35,8 +35,8 @@ class RoleSeeder extends Seeder
                 $name = ucfirst($action) . ' ' . ucfirst($entity);
 
                 Permission::firstOrCreate(
-                    ['code' => $code],
-                    ['name' => $name, 'code' => $code]
+                    ['code' => "get-story-{$entity}"],
+                    ['name' => "Get {$entity} change history"]
                 );
             }
         }

@@ -14,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\PersonalAccessToken;
+use PragmaRX\Google2FA\Google2FA;
 
 class AuthController extends Controller
 {
@@ -62,7 +63,7 @@ class AuthController extends Controller
 
             // Ищем пользователя
             $user = User::query()->where('username', $dto->username)->first();
-            if (! $user || ! Hash::check($dto->password, $user->password)) {
+            if (!$user || !Hash::check($dto->password, $user->password)) {
                 return response()->json([
                     'error' => 'Ошибка:(',
                     'message' => 'Неверно указано имя или пароль',
@@ -70,12 +71,23 @@ class AuthController extends Controller
             }
 
             // Проверяем количество токенов
-            $maxTokens = env('MAX_TOKENS', 40);
+            $maxTokens = env('MAX_TOKENS', 100);
             if ($user->tokens()->count() >= $maxTokens) {
                 return response()->json([
                     'error' => 'О нет... Лимит токенов превышен...',
                     'message' => 'Превышено максимальное количество активных токенов',
                 ], 403);
+            }
+
+            if ($user->google2fa_enabled) {
+                if (!$request->code) {
+                    return response()->json(['message' => '2FA Код обязателен'], 401);
+                }
+
+                $is_valid = (new Google2FA())->verify($request->code, $user->google2fa_secret);
+                if (!$is_valid) {
+                    return response()->json(['message' => "Неверный или истекший 2FA код"], 401);
+                }
             }
 
             $accessToken = $user->createToken(
@@ -107,7 +119,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        if (! $user) {
+        if (!$user) {
             return response()->json([
                 'error' => 'Ошибка:)',
                 'message' => 'Пользователь не авторизован',
@@ -129,20 +141,20 @@ class AuthController extends Controller
         // Получаем refresh-токен из заголовка
         $refreshToken = $request->bearerToken();
 
-        if (! $refreshToken) {
+        if (!$refreshToken) {
             return response()->json(['error' => 'Отсутствует refresh-токен'], 401);
         }
 
         // Находим токен
         $token = PersonalAccessToken::findToken($refreshToken);
 
-        if (! $token ||
+        if (!$token ||
             $token->expires_at < now() ||
-            ! $token->can(TokenAbility::ISSUE_ACCESS_TOKEN->value)) {
+            !$token->can(TokenAbility::ISSUE_ACCESS_TOKEN->value)) {
             return response()->json(['error' => 'Недействительный или просроченный токен'], 401);
         }
 
-        $request->setUserResolver(fn () => $token->tokenable);
+        $request->setUserResolver(fn() => $token->tokenable);
 
         // Создаём новый access-токен
         $newAccessToken = $token->tokenable->createToken(
@@ -163,7 +175,7 @@ class AuthController extends Controller
         $user = $request->user();
 
         // Если пользователь не авторизован, возвращаем ошибку
-        if (! $user) {
+        if (!$user) {
             return response()->json([
                 'error' => 'Ошибка:(',
                 'message' => 'Пользователь не авторизован',
@@ -180,7 +192,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        if (! $user) {
+        if (!$user) {
             return response()->json([
                 'error' => 'Ошибка:(',
                 'message' => 'Пользователь не найден',
@@ -197,7 +209,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        if (! $user) {
+        if (!$user) {
             return response()->json([
                 'error' => 'Ошибка:(',
                 'message' => 'Пользователь не найден',
@@ -215,7 +227,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        if (! Hash::check($request->current_password, $user->password)) {
+        if (!Hash::check($request->current_password, $user->password)) {
             return response()->json(['message' => 'Неверный текущий пароль'], 400);
         }
 

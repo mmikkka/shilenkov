@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ChangeLogResource;
 use App\Http\Resources\UserCollectionResource;
 use App\Http\Resources\UserWithRolesResource;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Services\ChangeLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class UserController extends Controller
 {
@@ -73,5 +76,12 @@ class UserController extends Controller
             'message' => 'Роль восстановлена',
             'data' => new UserWithRolesResource($user),
         ]);
+    }
+
+    public function story($id, ChangeLogService $service): AnonymousResourceCollection
+    {
+        $logs = $service->getEntityStory(User::class, $id);
+
+        return ChangeLogResource::collection($logs);
     }
 }

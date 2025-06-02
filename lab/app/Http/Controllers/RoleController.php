@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreRoleRequest;
 use App\Http\Requests\UpdateRoleRequest;
+use App\Http\Resources\ChangeLogResource;
 use App\Http\Resources\RoleCollectionResource;
 use App\Http\Resources\RoleResource;
 use App\Models\Role;
+use App\Services\ChangeLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Symfony\Component\HttpFoundation\Response;
 
 class RoleController extends Controller
@@ -99,5 +102,11 @@ class RoleController extends Controller
             'message' => 'Роль успешно восстановлена',
             'data' => new RoleResource($role),
         ]);
+    }
+
+    public function story($id, ChangeLogService $service): AnonymousResourceCollection
+    {
+        $logs = $service->getEntityStory(Role::class, $id);
+        return ChangeLogResource::collection($logs);
     }
 }

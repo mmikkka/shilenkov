@@ -48,10 +48,14 @@ class LoginRequest extends FormRequest
                 'min:8',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/',
             ],
+            'code' => [
+                'nullable',
+                'string'
+            ]
         ];
     }
 
-    public function messages() : array
+    public function messages(): array
     {
         return [
             'username.required' => 'Имя пользователя обязательно для заполнения.',
