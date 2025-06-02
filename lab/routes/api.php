@@ -4,6 +4,7 @@ use App\Enums\TokenAbility;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChangeLogController;
 use App\Http\Controllers\GitHookController;
+use App\Http\Controllers\LogRequestController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TwoFaAuthController;
@@ -62,6 +63,12 @@ Route::prefix('ref')->group(function () {
                 ->middleware([CheckPermission::class . ':delete-user']);
             Route::post('{user}/role/{role}/restore', [UserController::class, 'restoreRole'])
                 ->middleware([CheckPermission::class . ':restore-user']);
+        });
+
+        Route::prefix('log/request')->group(function () {
+            Route::get('/', [LogRequestController::class, 'index']);
+            Route::get('{log}', [LogRequestController::class, 'show']);
+            Route::delete('{log}', [LogRequestController::class, 'destroy']);
         });
 
         Route::prefix('changelog')->group(function () {
