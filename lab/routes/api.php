@@ -3,6 +3,7 @@
 use App\Enums\TokenAbility;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChangeLogController;
+use App\Http\Controllers\GitHookController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TwoFaAuthController;
@@ -11,12 +12,17 @@ use App\Http\Middleware\CheckExpiredTokens;
 use App\Http\Middleware\CheckPermission;
 use Illuminate\Support\Facades\Route;
 
+
+Route::prefix('hook')->group(function () {
+    Route::get('git/{secretKey}', [GitHookController::class, 'handle']);
+});
+
 // Группируем все маршруты с префиксом 'auth' и добавляем middleware для защищённых
 Route::prefix('auth')->group(function () {
     // Маршруты, не требующие авторизации
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
-    
+
     // Обновление токена теперь требует refresh-токена с нужной возможностью
     Route::post('refresh', [AuthController::class, 'refreshToken'])->middleware([
         'auth:sanctum', // Сначала Sanctum проверяет токен
