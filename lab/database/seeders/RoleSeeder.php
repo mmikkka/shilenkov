@@ -19,7 +19,7 @@ class RoleSeeder extends Seeder
         foreach ($roles as $role) {
             Role::firstOrCreate(['code' => $role['code']], $role);
         }
-        $entities = ['user', 'role', 'permission'];
+        $entities = ['user', 'role', 'permission', 'report'];
         $actions = [
             'get-list',
             'read',

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use \Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
@@ -73,5 +74,15 @@ class User extends Authenticatable
             ->withPivot('deleted_at')
             ->wherePivotNull('deleted_at')
             ->whereNull('roles.deleted_at');
+    }
+
+    public function requests(): HasMany
+    {
+        return $this->hasMany(LogRequest::class, 'user_id');
+    }
+
+    public function changes(): HasMany
+    {
+        return $this->hasMany(ChangeLog::class, 'created_by');
     }
 }

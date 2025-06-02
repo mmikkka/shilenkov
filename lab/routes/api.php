@@ -12,6 +12,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Middleware\CheckExpiredTokens;
 use App\Http\Middleware\CheckPermission;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ReportController;
 
 
 Route::prefix('hook')->group(function () {
@@ -74,6 +75,11 @@ Route::prefix('ref')->group(function () {
         Route::prefix('changelog')->group(function () {
             Route::get('/', [ChangeLogController::class, 'index']);
             Route::post('{logId}/rollback', [ChangeLogController::class, 'rollback']);
+        });
+
+        Route::prefix('reports')->group(function () {
+            Route::post('/generate', [ReportController::class, 'generateReport'])
+                ->middleware([CheckPermission::class . ':read-role']);
         });
 
         // маршруты управления ролевой политикой (Роли)
