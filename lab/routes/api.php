@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChangeLogController;
 use App\Http\Controllers\GitHookController;
 use App\Http\Controllers\LogRequestController;
+use App\Http\Controllers\MessengerReportController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TwoFaAuthController;
@@ -13,7 +14,7 @@ use App\Http\Middleware\CheckExpiredTokens;
 use App\Http\Middleware\CheckPermission;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ReportController;
-
+use App\Http\Controllers\MessengerController;
 
 Route::prefix('hook')->group(function () {
     Route::get('git/{secretKey}', [GitHookController::class, 'handle']);
@@ -79,6 +80,18 @@ Route::prefix('ref')->group(function () {
 
         Route::prefix('reports')->group(function () {
             Route::post('/generate', [ReportController::class, 'generateReport'])
+                ->middleware([CheckPermission::class . ':read-role']);
+        });
+
+        Route::prefix('messengers')->middleware(['auth:api'])->group(function () {
+            Route::get('/', [MessengerController::class, 'index']);
+            Route::post('/', [MessengerController::class, 'store']);
+            Route::post('/verify', [MessengerController::class, 'verify']);
+            Route::post('/{messengerId}/resend', [MessengerController::class, 'resendCode']);
+        });
+
+        Route::prefix('webhook')->group(function () {
+            Route::post('/{messenger}', [MessengerReportController::class, 'handleCommand'])
                 ->middleware([CheckPermission::class . ':read-role']);
         });
 

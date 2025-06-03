@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\User;
+use App\Observers\UserObserver;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -28,5 +30,7 @@ class RouteServiceProvider extends ServiceProvider
         // Загружаем маршруты Web
         Route::middleware('web')
             ->group(base_path('routes/web.php'));
+
+        User::observe(UserObserver::class);
     }
 }

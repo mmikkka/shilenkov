@@ -85,4 +85,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(ChangeLog::class, 'created_by');
     }
+
+    public function userMessengers(): HasMany
+    {
+        return $this->hasMany(UserMessenger::class);
+    }
 }
